@@ -60,7 +60,16 @@ def create_model_and_tokenizer(
     tokenizer.add_special_tokens({"pad_token": "[PAD]"})
     print("Loading model...")
     model = AutoModel.from_pretrained(model_name, cache_dir=cache_dir).cuda()
-
+    
+    model = torch.nn.DataParallel(model)
+    
+    # try:
+    #     from optimum.bettertransformer import BetterTransformer
+    #     model = BetterTransformer.transform(model)
+    #     print('>>>> enabling BetterTransformer')
+    # except:
+    #     print('Warn: fail to enable BetterTransformer')
+        
     return model, tokenizer
 
 
@@ -168,10 +177,12 @@ def run_feature_extraction(
     storage = []
     for batch in tqdm(dataloader):
         features = extract_features(model, batch["input_ids"], batch["attention_mask"])
+        print(features.shape)
         storage.append(features)
 
     # Save the features to disk.
-    return np.concatenate(storage, axis=0).reshape(-1, 384)
+    d = features.shape[-1]
+    return np.concatenate(storage, axis=0).reshape(-1, d)
 
 
 if __name__ == "__main__":
@@ -196,8 +207,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     feature_dir = os.path.join(args.feature_dir, args.model_name)
 
-    CUDA_VISIBLE_DEVICES = args.gpu
-    os.environ["CUDA_VISIBLE_DEVICES"] = str(CUDA_VISIBLE_DEVICES)
+    # CUDA_VISIBLE_DEVICES = args.gpu
+    # os.environ["CUDA_VISIBLE_DEVICES"] = str(CUDA_VISIBLE_DEVICES)
 
     # Get num_gpus on this machine.
     num_gpus = torch.cuda.device_count()
