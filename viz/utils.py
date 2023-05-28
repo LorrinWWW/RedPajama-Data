@@ -51,18 +51,18 @@ def extract_features(
 ):
     """Extract features from the model."""
     # Extract features from the model
-    attention_mask = attention_mask
-    outputs = model.forward(input_ids, attention_mask=attention_mask)[0]
+    attention_mask = attention_mask.to(model.device)
+    outputs = model.forward(input_ids.to(model.device), attention_mask=attention_mask)[0]
 
     # Use the attention mask to average the output vectors.
-    outputs = outputs.cpu()
-    attention_mask = attention_mask.cpu()
+    # outputs = outputs.cpu()
+    # attention_mask = attention_mask.cpu()
     features = (outputs * attention_mask.unsqueeze(2)).sum(1) / attention_mask.sum(
         1
-    ).unsqueeze(1).cpu()
+    ).unsqueeze(1) #.cpu()
 
     # Normalize embeddings
-    features = F.normalize(features, p=2, dim=1).numpy()
+    features = F.normalize(features, p=2, dim=1).cpu().numpy()
 
     return features
 
@@ -81,8 +81,8 @@ def extract_features_single(
     )
     return extract_features(
         model,
-        torch.tensor(tokenized["input_ids"][:chunk_size]),
-        torch.tensor(tokenized["attention_mask"][:chunk_size]),
+        torch.tensor(tokenized["input_ids"])[:, :chunk_size],
+        torch.tensor(tokenized["attention_mask"])[:, :chunk_size],
     )
 
 

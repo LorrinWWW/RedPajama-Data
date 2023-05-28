@@ -148,14 +148,14 @@ def extract_features(
     outputs = model.forward(input_ids.cuda(), attention_mask=attention_mask)[0]
 
     # Use the attention mask to average the output vectors.
-    outputs = outputs.cpu()
-    attention_mask = attention_mask.cpu()
+    # outputs = outputs.cpu()
+    # attention_mask = attention_mask.cpu()
     features = (outputs * attention_mask.unsqueeze(2)).sum(1) / attention_mask.sum(
         1
-    ).unsqueeze(1).cpu()
+    ).unsqueeze(1)
 
     # Normalize embeddings
-    features = F.normalize(features, p=2, dim=1).numpy()
+    features = F.normalize(features, p=2, dim=1).cpu().numpy()
 
     return features
 
@@ -178,7 +178,7 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("--gpu", type=int, default=0)
     parser.add_argument("--filepath", type=str)
-    parser.add_argument("--num_workers", type=int, default=16)
+    parser.add_argument("--num_workers", type=int, default=64)
     parser.add_argument("--batch_size", type=int, default=8)
     parser.add_argument("--chunk_size", type=int, default=256)
     parser.add_argument(
