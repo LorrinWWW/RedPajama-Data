@@ -39,6 +39,11 @@ python embed_jsonl.py --gpu 0 --filepath <path to jsonl file> --num_workers 8 --
 ```
 This will save the embeddings to a `.npy` file in the `feature_dir` directory. The name of the file will be the same as the name of the `.jsonl` file, but with the `.npy` extension.
 
+Jue:
+```
+python embed_jsonl.py --filepath /root/data/wiki_en.jsonl --batch_size 8192 --feature_dir ./features --model_name facebook/contriever-msmarco
+```
+
 You will need to run this script for each `.jsonl` file in the dataset. We recommend using a job scheduler to run the scripts in parallel (or if you are on a single machine, just run them sequentially using a runner script). Embedding a single `.jsonl` file takes around ~30 minutes on a single A100 GPU.
 
 ## Reduce with PCA
