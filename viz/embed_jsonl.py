@@ -17,13 +17,13 @@ from rich import print
 from tqdm.auto import tqdm
 from transformers import AutoModel, AutoTokenizer
 
-import meerkat as mk
-
+# import meerkat as mk
+from datasets import load_dataset, Features, Value
 
 class TruncatedDataset:
     def __init__(
         self,
-        df: mk.DataFrame,
+        df,
         tokenizer: AutoTokenizer,
         chunk_size: int,
     ):
@@ -37,7 +37,7 @@ class TruncatedDataset:
     def __getitem__(self, idx):
         data = self.df[idx]
         tokenized = self.tokenizer(
-            data["text"],
+            data["text"][:20000],
             pad_to_multiple_of=self.chunk_size,
             padding=True,
         )
@@ -46,7 +46,7 @@ class TruncatedDataset:
             "attention_mask": torch.tensor(
                 tokenized["attention_mask"][: self.chunk_size]
             ),
-            "doc_id": data["id"],
+            "doc_id": 0,
             "chunk_id": 0,
         }
 
@@ -84,45 +84,51 @@ def prepare(feature_dir: str, savepath: str):
 def load_dataframe(path):
     print("Loading dataframe...")
     # Load in the JSON.
-    df = mk.from_json(
-        path,
-        lines=True,
-        backend="arrow",
-        read_options=pa.json.ReadOptions(**{"block_size": 10 << 20}),
-    )
+#     df = mk.from_json(
+#         path,
+#         lines=True,
+#         backend="arrow",
+#         read_options=pa.json.ReadOptions(**{"block_size": 10 << 20}),
+#     )
 
-    if "meta" in df.columns:
-        struct_array = df["meta"].data
-        result = {}
-        for field_index in range(struct_array.type.num_fields):
-            field = struct_array.type.field(field_index)
-            result[field.name] = mk.ArrowScalarColumn(
-                pc.struct_field(struct_array, field.name)
-            )
-        meta_df = mk.DataFrame(result)
-    else:
-        meta_df = mk.DataFrame()
+#     if "meta" in df.columns:
+#         struct_array = df["meta"].data
+#         result = {}
+#         for field_index in range(struct_array.type.num_fields):
+#             field = struct_array.type.field(field_index)
+#             result[field.name] = mk.ArrowScalarColumn(
+#                 pc.struct_field(struct_array, field.name)
+#             )
+#         meta_df = mk.DataFrame(result)
+#     else:
+#         meta_df = mk.DataFrame()
 
-    if "id" in meta_df.columns:
-        df["id"] = meta_df["id"]
-    elif "arxiv_id" in meta_df.columns:
-        df["id"] = meta_df["arxiv_id"]
-    else:
-        try:
-            df["id"] = meta_df["pkey"]
-        except:
-            df.create_primary_key("id")
-    df = df.set_primary_key("id")
+#     if "id" in meta_df.columns:
+#         df["id"] = meta_df["id"]
+#     elif "arxiv_id" in meta_df.columns:
+#         df["id"] = meta_df["arxiv_id"]
+#     else:
+#         try:
+#             df["id"] = meta_df["pkey"]
+#         except:
+#             df.create_primary_key("id")
+#     df = df.set_primary_key("id")
 
-    try:
-        df = df.drop("pkey")
-    except ValueError:
-        pass
+#     try:
+#         df = df.drop("pkey")
+#     except ValueError:
+#         pass
 
-    assert set(df.columns) >= set(
-        ["id", "text"]
-    ), f"Unexpected columns: {set(df.columns)}"
-    return df
+#     assert set(df.columns) >= set(
+#         ["id", "text"]
+#     ), f"Unexpected columns: {set(df.columns)}"
+#     return df
+
+    # features = Features({
+    #     "text": Value(dtype='string', id=None),
+    #     "meta": Value(dtype='string', id=None),
+    # })
+    return load_dataset("json", data_files=path, split='train')
 
 
 def create_dataloader(
@@ -142,6 +148,7 @@ def create_dataloader(
         shuffle=False,
         batch_size=batch_size,
         num_workers=num_workers,
+        prefetch_factor=4
     )
 
 
